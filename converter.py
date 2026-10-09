@@ -2,9 +2,21 @@ import os
 import glob
 import time
 import openpyxl
+from termcolor import colored
 from openpyxl.utils import get_column_letter
 import pandas as pd
 #importação das bibliotecas necessarias
+
+def loading_animado():
+        loading = ["Carregando.", "Carregando..", "Carregando..."]
+
+        for l in loading:
+                time.sleep(0.5)
+                print(l, end="\r")
+
+
+print(colored('         Programa de Conversão CSV', 'light_blue'))
+loading_animado()
 
 def formatacao_planilha(nome_planilha):
         #função utilizada para formatar a planilha e deixar as colunas e linhas com tamanho ideal
@@ -41,39 +53,38 @@ def remover_data(df):
 arquivos_csv = glob.glob('*.csv')
 
 if not arquivos_csv:
-	print("nenhum arquivo csv encontrado")
+        print("nenhum arquivo csv encontrado")
+        print("insira um arquivo" , colored('CSV', 'white'))
 else:
-	print(f"Encontrado(s) {len(arquivos_csv)} arquivos para conversão.\n")
+        print(f"Encontrado(s) {len(arquivos_csv)} arquivos para conversão.\n")
 
-for arquivo_csv in arquivos_csv:
-        nome_base = os.path.splitext(arquivo_csv)[0]
-        arquivo_excel = f"{nome_base}.xlsx"
-
-        if os.path.exists(arquivo_excel):
-                print(f"o arquivo {arquivo_excel} ja existe, pulando conversao\n")
-                continue
-        else:
-           print(f"convertendo {arquivo_csv} para {arquivo_excel}..\n")
-
-        try:
-                df= pd.read_csv(arquivo_csv, sep=',', encoding='utf-8')
-                df = remover_data(df)
-                df.to_excel(arquivo_excel, index =False)
-
-                formatacao_planilha(arquivo_excel)
-
+        for arquivo_csv in arquivos_csv:
+                nome_base = os.path.splitext(arquivo_csv)[0]
+                arquivo_excel = f"{nome_base}.xlsx"
 
                 if os.path.exists(arquivo_excel):
-                        caminho_arquivo = os.path.abspath(arquivo_excel)
-                        print(f"o arquivo {arquivo_excel} passou a existir na pasta {caminho_arquivo}\n")
+                        print(f"o arquivo {arquivo_excel} ja existe, pulando conversao\n")
+                        continue
                 else:
-                        print("Arquivo nao encontrado")
-                print("conversao realizada com sucesso\n")
+                        print(f"convertendo {arquivo_csv} para {arquivo_excel}..\n")
 
-        except Exception as e:
-                print(f"Erro ao converter {arquivo_csv} : {e}")
-                time.sleep(5.5)
-                break
+                try:
+                        df= pd.read_csv(arquivo_csv, sep=',', encoding='utf-8')
+                        df = remover_data(df)
+                        df.to_excel(arquivo_excel, index =False)
+
+                        formatacao_planilha(arquivo_excel)
+
+                        if os.path.exists(arquivo_excel):
+                                caminho_arquivo = os.path.abspath(arquivo_excel)
+                                print(f"o arquivo {arquivo_excel} passou a existir na pasta {caminho_arquivo}\n")
+                        else:
+                                print(colored('Arquivo não encontrado', 'red'))
+                        print("conversao realizada com sucesso\n")
+
+                except Exception as e:
+                        print(colored (f'Erro ao converter {arquivo_csv} : {e}', 'red'))
+                        break
 
 print(f"\nProcesso Finalizado!\n")
 sair = input("aperte enter para finalizar")
