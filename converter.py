@@ -1,90 +1,72 @@
 import os
 import glob
-import time
-import openpyxl
+
 from termcolor import colored
-from openpyxl.utils import get_column_letter
-import pandas as pd
 #importação das bibliotecas necessarias
 
-def loading_animado():
-        loading = ["Carregando.", "Carregando..", "Carregando..."]
-
-        for l in loading:
-                time.sleep(0.5)
-                print(l, end="\r")
-
-
 print(colored('         Programa de Conversão CSV', 'light_blue'))
-loading_animado()
 
-def formatacao_planilha(nome_planilha):
-        #função utilizada para formatar a planilha e deixar as colunas e linhas com tamanho ideal
+def conversao(arquivo_excel, df):
+        with pd.ExcelWriter(arquivo_excel, engine="openpyxl") as writer:
+                df.to_excel(writer, sheet_name="Dados", index= False)
+                formatacao_planilha(writer.sheets["Dados"])
 
-        wb = openpyxl.load_workbook(nome_planilha) #Abre a planilha excel
 
-        ws = wb.active #pega a aba atual da planilha
-        ws.title = "Dados" #nomeia a aba
+def formatacao_planilha(ws):
+        for col in ws.columns:
+                largura = max((len(str(c.value)) for c in col if c.value is not None), default = 0)
+                ws.column_dimensions[col[0].column_letter].width = largura + 2
 
-        for col in ws.columns: # aqui ele vai fazer uma verificação em cada coluna, pegando o tamanho atual dela
-                max_length = 0
-                column_letter = get_column_letter(col[0].column) #aqui ela vai ir coluna por coluna, a column_letter transforma os numeros do col[0] e transforma numa letra correspondete, por exemplo 1 = A
+def remover_data(df, arquivo_excel):
+        print(f"deseja remover as colunas com datas do arquivo {arquivo_excel}? S/N")
+        pergunta = input().upper().strip()
 
-                for cell in col:
-                        if cell.value is not None:
-                                max_length = max(max_length, len(str(cell.value)))
-
-                ws.column_dimensions[column_letter].width = max_length + 2
-
-        wb.save(nome_planilha)
-
-def remover_data(df):
-        print("deseja remover as colunas com datas? Y/N")
-        pergunta = input().upper()
-
-        if pergunta == "Y":
+        if pergunta == "Y" or pergunta == "S":
 
                 colunas_alvo = df.filter(like='Data de conclusão').columns
                 df = df.drop(columns = colunas_alvo)
                 print("remoção realizada")
-
         return df
 
-arquivos_csv = glob.glob('*.csv')
+def main():
+        arquivos_csv = glob.glob('*.csv')
 
-if not arquivos_csv:
-        print("nenhum arquivo csv encontrado")
-        print("insira um arquivo" , colored('CSV', 'white'))
-else:
-        print(f"Encontrado(s) {len(arquivos_csv)} arquivos para conversão.\n")
+        if not arquivos_csv:
+                print("nenhum arquivo csv encontrado")
+                print("insira um arquivo" , colored('CSV', 'white'))
+        else:
+                print(f"Encontrado(s) {len(arquivos_csv)} arquivos para conversão.\n")
 
-        for arquivo_csv in arquivos_csv:
-                nome_base = os.path.splitext(arquivo_csv)[0]
-                arquivo_excel = f"{nome_base}.xlsx"
-
-                if os.path.exists(arquivo_excel):
-                        print(f"o arquivo {arquivo_excel} ja existe, pulando conversao\n")
-                        continue
-                else:
-                        print(f"convertendo {arquivo_csv} para {arquivo_excel}..\n")
-
-                try:
-                        df= pd.read_csv(arquivo_csv, sep=',', encoding='utf-8')
-                        df = remover_data(df)
-                        df.to_excel(arquivo_excel, index =False)
-
-                        formatacao_planilha(arquivo_excel)
+                for arquivo_csv in arquivos_csv:
+                        nome_base = os.path.splitext(arquivo_csv)[0]
+                        arquivo_excel = f"{nome_base}.xlsx"
 
                         if os.path.exists(arquivo_excel):
-                                caminho_arquivo = os.path.abspath(arquivo_excel)
-                                print(f"o arquivo {arquivo_excel} passou a existir na pasta {caminho_arquivo}\n")
-                        else:
-                                print(colored('Arquivo não encontrado', 'red'))
-                        print("conversao realizada com sucesso\n")
+                                print(f"o arquivo {arquivo_excel} ja existe, pulando conversão\n")
+                                continue
+                        
+                        print(f"convertendo {arquivo_csv} para {arquivo_excel}..\n")
 
-                except Exception as e:
-                        print(colored (f'Erro ao converter {arquivo_csv} : {e}', 'red'))
-                        break
+                        try:
+                                df = pd.read_csv(arquivo_csv, sep=',', encoding='utf-8')
+                                df = remover_data(df, arquivo_excel)
+                                conversao(arquivo_excel, df)
 
-print(f"\nProcesso Finalizado!\n")
-sair = input("aperte enter para finalizar")
+                                if os.path.exists(arquivo_excel):
+                                        caminho_arquivo = os.path.abspath(arquivo_excel)
+                                        print(f"o arquivo {arquivo_excel} passou a existir na pasta {caminho_arquivo}\n")
+                                else:
+                                        print(colored('Arquivo não encontrado', 'red'))
+                                print("conversao realizada com sucesso\n")
+
+                        except Exception as e:
+                                print(colored (f'Erro aos converter {arquivo_csv} : {e}', 'red'))
+                                if os.path.exists(arquivo_excel):
+                                        os.remove(arquivo_excel)
+
+if __name__ == "__main__":
+        import pandas as pd
+        main()
+
+        print(f"\nProcesso Finalizado!\n")
+        input("aperte enter para finalizar")
